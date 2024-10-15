@@ -11,9 +11,9 @@ from jwt import PyJWTError
 from telegram import Bot
 from telegram.error import TelegramError
 
-from .amazon.amazon_api import get_product_details, search_products
-from .database.supabase_client import supabase
-from .schemas.schemas import (
+from backend.amazon.amazon_api import get_product_details, search_products
+from backend.database.supabase_client import supabase
+from backend.schemas.schemas import (
     Cart,
     CartItem,
     CreateOrderRequest,
