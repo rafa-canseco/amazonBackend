@@ -3,7 +3,7 @@ import os
 import requests
 from dotenv import load_dotenv
 
-from ..schemas.schemas import (
+from schemas.schemas import (
     Product,
     ProductDetail,
     ProductDetailResponse,

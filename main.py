@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import List, Optional
 
@@ -11,9 +12,9 @@ from jwt import PyJWTError
 from telegram import Bot
 from telegram.error import TelegramError
 
-from .amazon.amazon_api import get_product_details, search_products
-from .database.supabase_client import supabase
-from .schemas.schemas import (
+from amazon.amazon_api import get_product_details, search_products
+from database.supabase_client import supabase
+from schemas.schemas import (
     Cart,
     CartItem,
     CreateOrderRequest,
@@ -47,9 +48,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+logger.info("Starting application")
+
 
 @app.get("/")
 def read_root():
+    logger.info("Received request for root endpoint")
     return {"hello": "world"}
 
 
