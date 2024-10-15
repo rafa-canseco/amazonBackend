@@ -1,14 +1,18 @@
-from pydantic import BaseModel
-from typing import List, Optional,Dict
 from datetime import datetime
+from typing import Dict, List, Optional
+
+from pydantic import BaseModel
+
 
 class SearchRequest(BaseModel):
     query: str
+
 
 class ProductPrice(BaseModel):
     value: float
     currency: str
     raw: str
+
 
 class Product(BaseModel):
     asin: str
@@ -24,11 +28,14 @@ class Product(BaseModel):
     is_prime: Optional[bool]
     fulfillment: Optional[dict]
 
+
 class SearchResponse(BaseModel):
     products: List[Product]
-    
+
+
 class ProductDetailRequest(BaseModel):
     asin: str
+
 
 class ProductDetail(BaseModel):
     asin: str
@@ -46,13 +53,16 @@ class ProductDetail(BaseModel):
     brand: Optional[str]
     availability: Optional[Dict[str, str]] = None
 
+
 class ProductDetailResponse(BaseModel):
     product: ProductDetail
-    
+
+
 class UserData(BaseModel):
     privy_id: str
     wallet_address: Optional[str] = None
-    
+
+
 class CartItem(BaseModel):
     asin: str
     quantity: int
@@ -60,15 +70,18 @@ class CartItem(BaseModel):
     price: float
     image_url: Optional[str] = None
 
+
 class Cart(BaseModel):
     items: List[CartItem]
-    
+
+
 class OrderItem(BaseModel):
     asin: str
     quantity: int
     price: float
     title: str
     image_url: Optional[str] = None
+
 
 class CreateOrderRequest(BaseModel):
     user_id: str
@@ -81,6 +94,7 @@ class CreateOrderRequest(BaseModel):
     phone: str
     delivery_instructions: str
     blockchain_order_id: str
+
 
 class Order(BaseModel):
     id: str
@@ -98,8 +112,10 @@ class Order(BaseModel):
     shipping_guide: Optional[str] = None
     blockchain_order_id: Optional[str] = None
 
+
 class CreateOrderResponse(BaseModel):
     order: Order
-    
+
+
 class UpdateOrderStatusRequest(BaseModel):
     shippingGuide: str
