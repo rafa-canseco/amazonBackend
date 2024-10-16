@@ -119,3 +119,8 @@ class CreateOrderResponse(BaseModel):
 
 class UpdateOrderStatusRequest(BaseModel):
     shippingGuide: str
+
+
+class StatsResponse(BaseModel):
+    total_users: int
+    total_order_amount: float

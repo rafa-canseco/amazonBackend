@@ -24,6 +24,7 @@ from schemas.schemas import (
     ProductDetailResponse,
     SearchRequest,
     SearchResponse,
+    StatsResponse,
     UpdateOrderStatusRequest,
     UserData,
 )
@@ -522,3 +523,24 @@ async def get_latest_exchange_rate():
         raise HTTPException(status_code=503, detail=f"Banxico API error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@app.get("/api/stats", response_model=StatsResponse)
+async def get_stats():
+    try:
+        users_response = (
+            supabase.table("users").select("count", count="exact").execute()
+        )
+        total_users = users_response.count
+
+        orders_response = supabase.table("orders").select("total_amount").execute()
+        total_order_amount = sum(
+            float(order["total_amount"]) for order in orders_response.data
+        )
+
+        return StatsResponse(
+            total_users=total_users, total_order_amount=total_order_amount
+        )
+    except Exception as e:
+        logger.error(f"Error fetching stats: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching stats")
