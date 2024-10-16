@@ -161,6 +161,8 @@ async def add_to_cart(user_id: str, item: CartItem):
                     "title": item.title,
                     "price": item.price,
                     "image_url": item.image_url,
+                    "variant_asin": item.variant_asin,
+                    "variant_dimensions": item.variant_dimensions,
                 }
             )
             .execute()
@@ -204,7 +206,6 @@ async def update_cart_item_quantity(user_id: str, asin: str, quantity: int):
 @app.post("/api/orders", response_model=Order)
 async def create_order(order_details: CreateOrderRequest):
     try:
-        # Insertar la orden principal
         order_response = (
             supabase.table("orders")
             .insert(
@@ -238,9 +239,12 @@ async def create_order(order_details: CreateOrderRequest):
                 "price": item.price,
                 "title": item.title,
                 "image_url": item.image_url,
+                "variant_asin": item.variant_asin,
+                "variant_dimensions": item.variant_dimensions,
             }
             for item in order_details.items
         ]
+        print(order_items)
 
         supabase.table("order_items").insert(order_items).execute()
 

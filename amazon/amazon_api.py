@@ -83,6 +83,7 @@ def get_product_details(asin: str) -> ProductDetailResponse:
     response.raise_for_status()
 
     data = response.json()
+    print("API Response:", data)
     product_data = data.get("product", {})
 
     product_detail = ProductDetail(
