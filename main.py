@@ -161,6 +161,7 @@ async def add_to_cart(user_id: str, item: CartItem):
                     "title": item.title,
                     "price": item.price,
                     "image_url": item.image_url,
+                    "product_link": item.product_link,
                     "variant_asin": item.variant_asin,
                     "variant_dimensions": item.variant_dimensions,
                 }
@@ -239,6 +240,7 @@ async def create_order(order_details: CreateOrderRequest):
                 "price": item.price,
                 "title": item.title,
                 "image_url": item.image_url,
+                "product_link": item.product_link,
                 "variant_asin": item.variant_asin,
                 "variant_dimensions": item.variant_dimensions,
             }
@@ -248,7 +250,6 @@ async def create_order(order_details: CreateOrderRequest):
 
         supabase.table("order_items").insert(order_items).execute()
 
-        # Borrar el carrito del usuario
         supabase.table("cart_items").delete().eq(
             "user_id", order_details.user_id
         ).execute()
@@ -304,7 +305,6 @@ async def create_order(order_details: CreateOrderRequest):
 @app.get("/api/orders/{user_id}", response_model=List[Order])
 async def get_user_orders(user_id: str):
     try:
-        # Obtener todas las órdenes del usuario con sus items en una sola consulta
         orders_data = (
             supabase.table("orders")
             .select("*, order_items(*)")
@@ -321,6 +321,9 @@ async def get_user_orders(user_id: str):
                     price=item["price"],
                     title=item["title"],
                     image_url=item.get("image_url"),
+                    product_link=item["product_link"],
+                    variant_asin=item.get("variant_asin"),
+                    variant_dimensions=item.get("variant_dimensions"),
                 )
                 for item in order_data["order_items"]
             ]

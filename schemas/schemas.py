@@ -69,6 +69,7 @@ class CartItem(BaseModel):
     title: str
     price: float
     image_url: Optional[str] = None
+    product_link: str
     variant_asin: Optional[str] = None
     variant_dimensions: Optional[Dict[str, str]] = None
 
@@ -83,6 +84,7 @@ class OrderItem(BaseModel):
     price: float
     title: str
     image_url: Optional[str] = None
+    product_link: str
     variant_asin: Optional[str] = None
     variant_dimensions: Optional[Dict[str, str]] = None
 
