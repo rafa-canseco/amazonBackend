@@ -61,6 +61,7 @@ class ProductDetailResponse(BaseModel):
 class UserData(BaseModel):
     privy_id: str
     wallet_address: Optional[str] = None
+    email: Optional[str] = None
 
 
 class CartItem(BaseModel):
@@ -84,7 +85,7 @@ class OrderItem(BaseModel):
     price: float
     title: str
     image_url: Optional[str] = None
-    product_link: str
+    product_link: Optional[str] = None
     variant_asin: Optional[str] = None
     variant_dimensions: Optional[Dict[str, str]] = None
 

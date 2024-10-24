@@ -9,11 +9,13 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWTError
+from pydantic import EmailStr
 from telegram import Bot
 from telegram.error import TelegramError
 
 from amazon.amazon_api import get_product_details, search_products
 from database.supabase_client import supabase
+from mail.mail import send_email
 from schemas.schemas import (
     Cart,
     CartItem,
@@ -67,16 +69,13 @@ def verify_admin_token(credentials: HTTPAuthorizationCredentials = Depends(secur
             credentials.credentials, options={"verify_signature": False}
         )
         privy_id = payload.get("sub")
-        wallet_address = payload.get(
-            "wallet_address"
-        )  # Asumiendo que Privy incluye la dirección del wallet en el token
+        wallet_address = payload.get("wallet_address")
 
         if privy_id is None and wallet_address is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
             )
 
-        # Verificar si el usuario es un administrador
         if privy_id != ADMIN_PRIVY_ID and wallet_address != ADMIN_WALLET_ADDRESS:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized"
@@ -246,7 +245,6 @@ async def create_order(order_details: CreateOrderRequest):
             }
             for item in order_details.items
         ]
-        print(order_items)
 
         supabase.table("order_items").insert(order_items).execute()
 
@@ -358,7 +356,6 @@ async def get_user_orders(user_id: str):
 @app.get("/api/admin/orders", response_model=List[Order])
 async def get_all_orders(admin_id: str = Depends(verify_admin_token)):
     try:
-        # Obtener todas las órdenes con sus items en una sola consulta
         orders_data = supabase.table("orders").select("*, order_items(*)").execute()
 
         orders = []
@@ -370,6 +367,9 @@ async def get_all_orders(admin_id: str = Depends(verify_admin_token)):
                     price=item["price"],
                     title=item["title"],
                     image_url=item.get("image_url"),
+                    product_link=item.get("product_link", "https://www.amazon.com"),
+                    variant_asin=item.get("variant_asin"),
+                    variant_dimensions=item.get("variant_dimensions"),
                 )
                 for item in order_data["order_items"]
             ]
@@ -465,6 +465,12 @@ async def update_order_status(
     admin_id: str = Depends(verify_admin_token),
 ):
     try:
+        order_info = (
+            supabase.table("orders").select("*").eq("id", order_id).single().execute()
+        )
+        if not order_info.data:
+            raise HTTPException(status_code=404, detail="Order not found")
+
         response = (
             supabase.table("orders")
             .update({"status": "shipped", "shipping_guide": request.shippingGuide})
@@ -476,6 +482,31 @@ async def update_order_status(
             raise HTTPException(
                 status_code=404, detail="Order not found or no update made"
             )
+
+        if response.data[0]["status"] == "shipped":
+            user_id = order_info.data["user_id"]
+            user_info = (
+                supabase.table("users")
+                .select("email")
+                .eq("privy_id", user_id)
+                .single()
+                .execute()
+            )
+
+            if user_info.data and user_info.data.get("email"):
+                user_email = user_info.data["email"]
+                subject = "Your order has been shipped"
+                html_content = f"""
+                <h1>Your order has been shipped!</h1>
+                <p>Order ID: {order_id}</p>
+                <p>Shipping Guide: {request.shippingGuide}</p>
+                <p>Thank you for your purchase!</p>
+                """
+                email_result = send_email(user_email, subject, html_content)
+                if not email_result["success"]:
+                    print(f"Failed to send email: {email_result['message']}")
+            else:
+                print(f"User email not found for user_id: {user_id}")
 
         return {"message": "Order status updated successfully"}
 
@@ -551,3 +582,38 @@ async def get_stats():
     except Exception as e:
         logger.error(f"Error fetching stats: {str(e)}")
         raise HTTPException(status_code=500, detail="Error fetching stats")
+
+
+@app.get("/user/email")
+async def get_user_email(privy_id: str):
+    try:
+        response = (
+            supabase.table("users")
+            .select("email")
+            .eq("privy_id", privy_id)
+            .single()
+            .execute()
+        )
+        if response.data:
+            return {"email": response.data.get("email")}
+        else:
+            return {"email": None}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/user/email")
+async def update_user_email(privy_id: str, email: EmailStr):
+    try:
+        response = (
+            supabase.table("users")
+            .update({"email": email})
+            .eq("privy_id", privy_id)
+            .execute()
+        )
+        if len(response.data) > 0:
+            return {"message": "Email updated successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="User not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
