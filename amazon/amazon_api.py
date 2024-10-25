@@ -129,6 +129,8 @@ def get_product_details(asin: str) -> ProductDetailResponse:
             else ""
         ),
         availability={"status": product_data.get("buybox", {}).get("availability", "")},
+        category=product_data.get("search_alias", {}).get("title", ""),
+        specifications=product_data.get("specifications", []),
     )
 
     return ProductDetailResponse(product=product_detail)

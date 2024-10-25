@@ -52,6 +52,8 @@ class ProductDetail(BaseModel):
     link: str
     brand: Optional[str]
     availability: Optional[Dict[str, str]] = None
+    category: Optional[str] = None
+    specifications: Optional[List[Dict[str, str]]] = None
 
 
 class ProductDetailResponse(BaseModel):
@@ -73,6 +75,11 @@ class CartItem(BaseModel):
     product_link: str
     variant_asin: Optional[str] = None
     variant_dimensions: Optional[Dict[str, str]] = None
+    category: Optional[str] = None
+    specifications: Optional[List[Dict[str, str]]] = None
+    shipping_fee: Optional[float] = None
+    normalized_category: Optional[str] = None
+    weight_lb: Optional[float] = None
 
 
 class Cart(BaseModel):

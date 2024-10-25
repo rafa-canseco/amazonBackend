@@ -13,7 +13,9 @@ from pydantic import EmailStr
 from telegram import Bot
 from telegram.error import TelegramError
 
+from aiService.aiService import AIClass
 from amazon.amazon_api import get_product_details, search_products
+from amazon.shippingFees import calculate_shipping_fee, convert_to_pounds
 from database.supabase_client import supabase
 from mail.mail import send_email
 from schemas.schemas import (
@@ -38,6 +40,9 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 ADMIN_WALLET_ADDRESS = os.getenv("ADMIN_WALLET_ADDRESS")
 ADMIN_PRIVY_ID = os.getenv("ADMIN_PRIVY_ID")
 BMX_TOKEN = os.getenv("BMX_TOKEN")
+API_KEY_OPENAI = os.getenv("API_KEY_OPENAI", "")
+if not API_KEY_OPENAI:
+    raise ValueError("API_KEY_OPENAI environment variable is required")
 
 app = FastAPI()
 
@@ -55,6 +60,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 logger.info("Starting application")
+ai_service = AIClass(api_key=API_KEY_OPENAI, model="gpt-4o-mini")
 
 
 @app.get("/")
@@ -150,6 +156,20 @@ async def get_cart(user_id: str):
 @app.post("/cart/{user_id}", response_model=Cart)
 async def add_to_cart(user_id: str, item: CartItem):
     try:
+        category_result = await ai_service.normalize_category_fn(item.category)
+        if not category_result or not category_result.get("prediction"):
+            raise HTTPException(
+                status_code=400, detail="Could not determine product category"
+            )
+
+        normalized_category = category_result["prediction"]
+
+        weight_result = await ai_service.extract_weight_fn(item.specifications)
+        weight_lb = convert_to_pounds(
+            weight_result["weight_value"], weight_result["weight_unit"]
+        )
+
+        shipping_fee = calculate_shipping_fee(normalized_category, weight_lb)
         response = (
             supabase.table("cart_items")
             .insert(
@@ -163,6 +183,11 @@ async def add_to_cart(user_id: str, item: CartItem):
                     "product_link": item.product_link,
                     "variant_asin": item.variant_asin,
                     "variant_dimensions": item.variant_dimensions,
+                    "category": item.category,
+                    "specifications": item.specifications,
+                    "shipping_fee": shipping_fee,
+                    "normalized_category": normalized_category,
+                    "weight_lb": weight_lb,
                 }
             )
             .execute()
